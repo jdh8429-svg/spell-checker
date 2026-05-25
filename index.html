@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>한글 맞춤법 교정기</title>
+  <title>우리말 바로쓰기 · 충청남도교육청</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,12 +16,12 @@
 
     header {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      padding: 28px 24px;
+      padding: 32px 24px 28px;
       text-align: center;
       color: #fff;
     }
-    header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
-    header p  { margin-top: 6px; font-size: 0.9rem; opacity: 0.8; }
+    header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p  { margin-top: 8px; font-size: 0.95rem; opacity: 0.75; letter-spacing: 0.05em; }
 
     main {
       max-width: 960px;
@@ -32,6 +32,33 @@
       gap: 18px;
     }
 
+    /* 모드 탭 */
+    .mode-tabs {
+      display: flex;
+      background: #e8eaf4;
+      border-radius: 50px;
+      padding: 4px;
+      width: fit-content;
+      margin: 0 auto;
+    }
+    .tab {
+      padding: 10px 30px;
+      border-radius: 50px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #888;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: #fff;
+      color: #2563eb;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
     .panels {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -39,6 +66,7 @@
     }
     @media (max-width: 680px) {
       .panels { grid-template-columns: 1fr; }
+      .tab { padding: 9px 20px; font-size: 0.85rem; }
     }
 
     .panel {
@@ -90,19 +118,11 @@
     }
     .output-body.empty { color: #c0c4d0; }
 
-    /* 네이버 교정 HTML 스타일 */
     .output-body em {
       font-style: normal;
       background: #fff3cd;
       color: #7a5700;
       border-bottom: 2px solid #f0c040;
-      padding: 0 2px;
-      border-radius: 3px;
-    }
-    .output-body .green_word {
-      background: #d1fae5;
-      color: #065f46;
-      border-bottom: 2px solid #34d399;
       padding: 0 2px;
       border-radius: 3px;
     }
@@ -125,8 +145,9 @@
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(37,99,235,0.35);
       transition: transform 0.15s, box-shadow 0.15s;
+      font-family: inherit;
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(37,99,235,0.45); }
+    .btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(37,99,235,0.45); }
     .btn-primary:active { transform: translateY(0); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -156,15 +177,11 @@
       justify-content: center;
       flex-wrap: wrap;
     }
-    .badge {
-      padding: 5px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    .badge-warn  { background: #fef3c7; color: #92400e; }
-    .badge-ok    { background: #d1fae5; color: #065f46; }
-    .badge-info  { background: #e0e7ff; color: #3730a3; }
+    .badge { padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    .badge-ok   { background: #d1fae5; color: #065f46; }
+    .badge-info { background: #e0e7ff; color: #3730a3; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
 
     .alert {
       background: #fff5f5;
@@ -175,12 +192,7 @@
       font-size: 0.875rem;
     }
 
-    .spinner-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #999;
-    }
+    .spinner-wrap { display: flex; align-items: center; gap: 10px; color: #999; }
     .spinner {
       width: 18px; height: 18px;
       border: 2px solid #e5e7eb;
@@ -190,42 +202,56 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .ok-text { color: #059669; font-weight: 600; }
+
+    .change-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.875rem;
+    }
+    .tag-before { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; }
+    .tag-after  { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; }
+    .tag-note   { color: #999; font-size: 0.78rem; }
+
     footer {
       text-align: center;
-      padding: 28px;
-      font-size: 0.78rem;
+      padding: 24px;
+      font-size: 0.8rem;
       color: #c0c4d0;
     }
-
-    .ok-text { color: #059669; font-weight: 600; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>한글 맞춤법 교정기</h1>
-  <p>네이버 맞춤법 검사기 기반 · 최대 500자</p>
+  <h1>우리말 바로쓰기</h1>
+  <p>충청남도교육청</p>
 </header>
 
 <main>
+  <!-- 모드 탭 -->
+  <div class="mode-tabs">
+    <button class="tab active" id="tab-spell"  onclick="setMode('spell')">맞춤법 교정</button>
+    <button class="tab"        id="tab-korean" onclick="setMode('korean')">순우리말 변환</button>
+  </div>
+
+  <!-- 입력 / 결과 패널 -->
   <div class="panels">
-    <!-- 입력 패널 -->
     <div class="panel">
       <div class="panel-head">
         <span>입력 텍스트</span>
         <span class="char-count" id="charCount">0 / 500자</span>
       </div>
-      <textarea
-        id="inputText"
-        placeholder="교정할 텍스트를 입력하세요.&#10;&#10;예) 저는 오늘 친구랑 밥을 먹었어요. 너무 맛있어서 한그릇 더 먹었어요."
-        maxlength="500"
-      ></textarea>
+      <textarea id="inputText" maxlength="500"
+        placeholder="교정할 텍스트를 입력하세요.&#10;&#10;예) 저는 오늘 친구랑 밥을 먹었어요. 너무 맛있어서 한그릇 더 먹었어요."></textarea>
     </div>
 
-    <!-- 결과 패널 -->
     <div class="panel">
       <div class="panel-head">
-        <span>교정 결과</span>
+        <span id="resultLabel">교정 결과</span>
         <span id="errorBadge"></span>
       </div>
       <div class="output-body empty" id="outputContent">
@@ -236,42 +262,75 @@
 
   <!-- 버튼 -->
   <div class="action-row">
-    <button class="btn-primary" id="checkBtn" onclick="checkSpelling()">맞춤법 검사</button>
+    <button class="btn-primary" id="checkBtn" onclick="doAction()">맞춤법 검사</button>
     <button class="btn-ghost" onclick="clearAll()">초기화</button>
   </div>
-  <p class="hint">Ctrl + Enter 로도 검사할 수 있습니다.</p>
+  <p class="hint">Ctrl + Enter 로도 실행할 수 있습니다.</p>
 
-  <!-- 통계 -->
   <div class="stats" id="statsRow" style="display:none;"></div>
-
-  <!-- 오류 메시지 -->
   <div id="alertBox"></div>
 </main>
 
-<footer>
-  네이버 맞춤법 검사기를 활용합니다 · 본 서비스는 비공식 API를 사용합니다
-</footer>
+<footer>충청남도교육청</footer>
 
 <script>
-  const inputEl   = document.getElementById('inputText');
-  const outputEl  = document.getElementById('outputContent');
-  const checkBtn  = document.getElementById('checkBtn');
-  const statsRow  = document.getElementById('statsRow');
+  const inputEl    = document.getElementById('inputText');
+  const outputEl   = document.getElementById('outputContent');
+  const checkBtn   = document.getElementById('checkBtn');
+  const statsRow   = document.getElementById('statsRow');
   const errorBadge = document.getElementById('errorBadge');
-  const alertBox  = document.getElementById('alertBox');
+  const alertBox   = document.getElementById('alertBox');
+  const resultLabel = document.getElementById('resultLabel');
+
+  let mode = 'spell';
+
+  const MODES = {
+    spell: {
+      btn:         '맞춤법 검사',
+      btnLoading:  '검사 중...',
+      resultLabel: '교정 결과',
+      emptyMsg:    '교정 결과가 여기에 표시됩니다.',
+      placeholder: '교정할 텍스트를 입력하세요.\n\n예) 저는 오늘 친구랑 밥을 먹었어요. 너무 맛있어서 한그릇 더 먹었어요.',
+    },
+    korean: {
+      btn:         '순우리말로 변환',
+      btnLoading:  '변환 중...',
+      resultLabel: '순우리말 변환 결과',
+      emptyMsg:    '변환 결과가 여기에 표시됩니다.',
+      placeholder: '외래어가 포함된 텍스트를 입력하세요.\n\n예) 오늘 미팅에서 프레젠테이션을 발표했습니다.',
+    },
+  };
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('tab-spell').classList.toggle('active',  m === 'spell');
+    document.getElementById('tab-korean').classList.toggle('active', m === 'korean');
+    checkBtn.textContent = MODES[m].btn;
+    resultLabel.textContent = MODES[m].resultLabel;
+    inputEl.placeholder = MODES[m].placeholder;
+    setOutput(MODES[m].emptyMsg, true);
+    statsRow.style.display = 'none';
+    errorBadge.innerHTML = '';
+    alertBox.innerHTML = '';
+  }
+
+  function doAction() {
+    if (mode === 'spell') checkSpelling();
+    else convertKorean();
+  }
 
   inputEl.addEventListener('input', () => {
     document.getElementById('charCount').textContent = `${inputEl.value.length} / 500자`;
   });
 
   inputEl.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'Enter') checkSpelling();
+    if (e.ctrlKey && e.key === 'Enter') doAction();
   });
 
   function clearAll() {
     inputEl.value = '';
     document.getElementById('charCount').textContent = '0 / 500자';
-    setOutput('교정 결과가 여기에 표시됩니다.', true);
+    setOutput(MODES[mode].emptyMsg, true);
     statsRow.style.display = 'none';
     errorBadge.innerHTML = '';
     alertBox.innerHTML = '';
@@ -283,20 +342,21 @@
   }
 
   function showAlert(msg) {
-    alertBox.innerHTML = `<div class="alert">&#9888;&#65039; ${msg}</div>`;
+    alertBox.innerHTML = `<div class="alert">&#9888; ${msg}</div>`;
   }
 
   function resetBtn() {
     checkBtn.disabled = false;
-    checkBtn.textContent = '맞춤법 검사';
+    checkBtn.textContent = MODES[mode].btn;
   }
 
+  /* ── 맞춤법 교정 ── */
   async function checkSpelling() {
     const text = inputEl.value.trim();
     if (!text) { showAlert('텍스트를 입력해주세요.'); return; }
 
     checkBtn.disabled = true;
-    checkBtn.textContent = '검사 중...';
+    checkBtn.textContent = MODES.spell.btnLoading;
     alertBox.innerHTML = '';
     errorBadge.innerHTML = '';
     statsRow.style.display = 'none';
@@ -306,50 +366,87 @@
       const res  = await fetch('/api/check?q=' + encodeURIComponent(text));
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '서버 오류');
-      handleResult(data, text);
+
+      const errCount = data.errorCount || 0;
+      if (errCount === 0) {
+        setOutput('<p class="ok-text" style="margin-bottom:10px;">맞춤법 오류가 없습니다.</p><p>' + escHtml(text) + '</p>', false);
+        errorBadge.innerHTML = '<span class="badge badge-ok">오류 없음</span>';
+      } else {
+        let html = '<p style="margin-bottom:16px;line-height:1.9;">' + escHtml(data.corrected || text) + '</p>';
+        html += '<div style="border-top:1px solid #e8eaf0;padding-top:14px;">';
+        html += '<p style="font-size:0.78rem;color:#aaa;margin-bottom:10px;">교정 목록</p>';
+        for (const err of (data.errors || [])) {
+          html += `<div class="change-row">
+            <span class="tag-before">${escHtml(err.token)}</span>
+            <span style="color:#ccc;">→</span>
+            <span class="tag-after">${escHtml(err.suggestion)}</span>
+            <span class="tag-note">${escHtml(err.help)}</span>
+          </div>`;
+        }
+        html += '</div>';
+        setOutput(html, false);
+        errorBadge.innerHTML = `<span class="badge badge-warn">오류 ${errCount}개</span>`;
+      }
+
+      statsRow.style.display = 'flex';
+      statsRow.innerHTML = `<span class="badge badge-info">입력: ${text.length}자</span>` +
+        (errCount > 0 ? `<span class="badge badge-warn">오류: ${errCount}개</span>` : '<span class="badge badge-ok">오류 없음</span>');
     } catch(e) {
       showAlert(e.message || '오류가 발생했습니다.');
-      setOutput('교정 결과가 여기에 표시됩니다.', true);
+      setOutput(MODES.spell.emptyMsg, true);
     }
     resetBtn();
   }
 
-  function handleResult(data, original) {
-    const errCount = data.errorCount || 0;
+  /* ── 순우리말 변환 ── */
+  async function convertKorean() {
+    const text = inputEl.value.trim();
+    if (!text) { showAlert('텍스트를 입력해주세요.'); return; }
 
-    if (errCount === 0) {
-      setOutput(
-        '<p class="ok-text" style="margin-bottom:10px;">맞춤법 오류가 없습니다.</p>' +
-        '<p>' + escHtml(original) + '</p>',
-        false
-      );
-      errorBadge.innerHTML = '<span class="badge badge-ok">오류 없음</span>';
-    } else {
-      let html = '<p style="margin-bottom:16px;line-height:1.9;">' + escHtml(data.corrected || original) + '</p>';
-      html += '<div style="border-top:1px solid #e8eaf0;padding-top:14px;">';
-      html += '<p style="font-size:0.78rem;color:#aaa;margin-bottom:10px;">교정 목록</p>';
-      for (const err of (data.errors || [])) {
-        html += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;font-size:0.875rem;">
-          <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">${escHtml(err.token)}</span>
-          <span style="color:#ccc;">→</span>
-          <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:4px;">${escHtml(err.suggestion)}</span>
-          <span style="color:#999;font-size:0.78rem;">${escHtml(err.help)}</span>
-        </div>`;
+    checkBtn.disabled = true;
+    checkBtn.textContent = MODES.korean.btnLoading;
+    alertBox.innerHTML = '';
+    errorBadge.innerHTML = '';
+    statsRow.style.display = 'none';
+    setOutput('<div class="spinner-wrap"><div class="spinner"></div><span>변환 중...</span></div>', false);
+
+    try {
+      const res  = await fetch('/api/korean?q=' + encodeURIComponent(text));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '서버 오류');
+
+      const changeCount = data.changeCount || 0;
+      if (changeCount === 0) {
+        setOutput('<p class="ok-text" style="margin-bottom:10px;">변환할 외래어가 없습니다.</p><p>' + escHtml(text) + '</p>', false);
+        errorBadge.innerHTML = '<span class="badge badge-ok">변환 없음</span>';
+      } else {
+        let html = '<p style="margin-bottom:16px;line-height:1.9;">' + escHtml(data.converted || text) + '</p>';
+        html += '<div style="border-top:1px solid #e8eaf0;padding-top:14px;">';
+        html += '<p style="font-size:0.78rem;color:#aaa;margin-bottom:10px;">변환 목록</p>';
+        for (const c of (data.changes || [])) {
+          html += `<div class="change-row">
+            <span class="tag-before">${escHtml(c.original)}</span>
+            <span style="color:#ccc;">→</span>
+            <span class="tag-after">${escHtml(c.korean)}</span>
+            <span class="tag-note">${escHtml(c.note || '')}</span>
+          </div>`;
+        }
+        html += '</div>';
+        setOutput(html, false);
+        errorBadge.innerHTML = `<span class="badge badge-blue">${changeCount}개 변환</span>`;
       }
-      html += '</div>';
-      setOutput(html, false);
-      errorBadge.innerHTML = `<span class="badge badge-warn">오류 ${errCount}개</span>`;
-    }
 
-    statsRow.style.display = 'flex';
-    statsRow.innerHTML =
-      `<span class="badge badge-info">입력: ${original.length}자</span>` +
-      (errCount > 0
-        ? `<span class="badge badge-warn">오류: ${errCount}개</span>`
-        : `<span class="badge badge-ok">오류 없음</span>`);
+      statsRow.style.display = 'flex';
+      statsRow.innerHTML = `<span class="badge badge-info">입력: ${text.length}자</span>` +
+        (changeCount > 0 ? `<span class="badge badge-blue">${changeCount}개 변환</span>` : '<span class="badge badge-ok">변환 없음</span>');
+    } catch(e) {
+      showAlert(e.message || '오류가 발생했습니다.');
+      setOutput(MODES.korean.emptyMsg, true);
+    }
+    resetBtn();
   }
 
-  function escHtml(str) {
+  function escHtml(str = '') {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 </script>

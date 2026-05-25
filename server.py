@@ -1,6 +1,7 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import urllib.request
 import urllib.error
+import urllib.parse
 import json
 import re
 import os
@@ -11,7 +12,7 @@ API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 CLAUDE_URL = "https://api.anthropic.com/v1/messages"
 
-PROMPT = """한국어 맞춤법 검사기입니다. 아래 텍스트의 맞춤법·띄어쓰기를 검사하고 JSON으로만 응답하세요.
+SPELL_PROMPT = """한국어 맞춤법 검사기입니다. 아래 텍스트의 맞춤법·띄어쓰기를 검사하고 JSON으로만 응답하세요.
 
 텍스트: {text}
 
@@ -24,11 +25,26 @@ PROMPT = """한국어 맞춤법 검사기입니다. 아래 텍스트의 맞춤�
   "errorCount": 오류_개수
 }}"""
 
+KOREAN_PROMPT = """외래어·영어·한자어를 순우리말로 바꾸는 작업입니다. 아래 텍스트에서 외래어나 외국어 표현을 자연스러운 순우리말로 바꿔주세요.
+
+텍스트: {text}
+
+아래 JSON 형식 외에 다른 텍스트는 절대 출력하지 마세요:
+{{
+  "converted": "변환된 전체 텍스트",
+  "changes": [
+    {{"original": "외래어/외국어", "korean": "순우리말", "note": "간단한 설명"}}
+  ],
+  "changeCount": 변환_개수
+}}"""
+
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/api/check"):
-            self._handle_check()
+            self._handle(SPELL_PROMPT)
+        elif self.path.startswith("/api/korean"):
+            self._handle(KOREAN_PROMPT)
         else:
             super().do_GET()
 
@@ -37,10 +53,9 @@ class Handler(SimpleHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
-    def _handle_check(self):
-        import urllib.parse
+    def _handle(self, prompt_template):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        text = params.get("q", [""])[0]
+        text   = params.get("q", [""])[0]
 
         if not text.strip():
             return self._json(400, {"error": "텍스트가 없습니다."})
@@ -48,33 +63,36 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(500, {"error": "서버에 ANTHROPIC_API_KEY가 설정되지 않았습니다."})
 
         try:
-            payload = {
-                "model": "claude-haiku-4-5-20251001",
-                "max_tokens": 1024,
-                "messages": [{"role": "user", "content": PROMPT.format(text=text)}],
-            }
-            body = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                CLAUDE_URL, data=body,
-                headers={
-                    "x-api-key": API_KEY,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                response = json.loads(resp.read().decode("utf-8"))
-
-            raw = response["content"][0]["text"].strip()
-            m = re.search(r"\{.*\}", raw, re.DOTALL)
-            if not m:
-                raise ValueError("JSON 파싱 실패")
-            self._json(200, json.loads(m.group(0)))
-
+            result = self._call_claude(prompt_template.format(text=text))
+            self._json(200, result)
         except urllib.error.HTTPError as e:
             self._json(502, {"error": f"API 오류: {e.code}"})
         except Exception as e:
             self._json(500, {"error": str(e)})
+
+    def _call_claude(self, prompt):
+        payload = {
+            "model": "claude-haiku-4-5-20251001",
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        body = json.dumps(payload).encode("utf-8")
+        req  = urllib.request.Request(
+            CLAUDE_URL, data=body,
+            headers={
+                "x-api-key":           API_KEY,
+                "anthropic-version":   "2023-06-01",
+                "content-type":        "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            response = json.loads(resp.read().decode("utf-8"))
+
+        raw = response["content"][0]["text"].strip()
+        m   = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not m:
+            raise ValueError("JSON 파싱 실패")
+        return json.loads(m.group(0))
 
     def _json(self, code, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -86,7 +104,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin",  "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
