@@ -307,7 +307,7 @@
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || '서버 오류');
-      handleResult(data.message.result, text);
+      handleResult(data, text);
     } catch(e) {
       showAlert(e.message || '오류가 발생했습니다.');
       setOutput('교정 결과가 여기에 표시됩니다.', true);
@@ -316,8 +316,8 @@
     resetBtn();
   }
 
-  function handleResult(result, original) {
-    const errCount = Number(result.errataCount) || 0;
+  function handleResult(data, original) {
+    const errCount = data.errorCount || 0;
 
     if (errCount === 0) {
       setOutput(
@@ -327,9 +327,19 @@
       );
       errorBadge.innerHTML = '<span class="badge badge-ok">오류 없음</span>';
     } else {
-      // 네이버가 반환하는 HTML에는 교정 표시가 포함돼 있음
-      const safeHtml = result.html || escHtml(result.errata || '');
-      setOutput(safeHtml, false);
+      let html = '<p style="margin-bottom:16px;line-height:1.9;">' + buildHighlighted(original, data.errors) + '</p>';
+      html += '<div style="border-top:1px solid #e8eaf0;padding-top:14px;">';
+      html += '<p style="font-size:0.78rem;color:#aaa;margin-bottom:10px;">교정 목록</p>';
+      for (const err of data.errors) {
+        html += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;font-size:0.875rem;">
+          <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">${escHtml(err.token)}</span>
+          <span style="color:#ccc;">→</span>
+          <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:4px;">${escHtml(err.suggestion)}</span>
+          <span style="color:#999;font-size:0.78rem;">${escHtml(err.type)} · ${escHtml(err.help)}</span>
+        </div>`;
+      }
+      html += '</div>';
+      setOutput(html, false);
       errorBadge.innerHTML = `<span class="badge badge-warn">오류 ${errCount}개</span>`;
     }
 
@@ -339,6 +349,18 @@
       (errCount > 0
         ? `<span class="badge badge-warn">오류: ${errCount}개</span>`
         : `<span class="badge badge-ok">오류 없음</span>`);
+  }
+
+  function buildHighlighted(text, errors) {
+    const sorted = [...errors].sort((a, b) => a.start - b.start);
+    let html = '', pos = 0;
+    for (const err of sorted) {
+      html += escHtml(text.slice(pos, err.start));
+      html += `<em title="${escHtml(err.help)}">${escHtml(err.token)}</em>`;
+      pos = err.end;
+    }
+    html += escHtml(text.slice(pos));
+    return html;
   }
 
   function escHtml(str) {
