@@ -204,7 +204,7 @@
 
 <header>
   <h1>한글 맞춤법 교정기</h1>
-  <p>네이버 맞춤법 검사기 기반 · 최대 500자 · server.py로 실행하세요</p>
+  <p>네이버 맞춤법 검사기 기반 · 최대 500자</p>
 </header>
 
 <main>
@@ -291,7 +291,7 @@
     checkBtn.textContent = '맞춤법 검사';
   }
 
-  async function checkSpelling() {
+  function checkSpelling() {
     const text = inputEl.value.trim();
     if (!text) { showAlert('텍스트를 입력해주세요.'); return; }
 
@@ -302,22 +302,48 @@
     statsRow.style.display = 'none';
     setOutput('<div class="spinner-wrap"><div class="spinner"></div><span>맞춤법 검사 중...</span></div>', false);
 
-    try {
-      const res = await fetch('/api/check?q=' + encodeURIComponent(text));
-      const data = await res.json();
+    const cbName = 'nsc_' + Date.now();
+    const script = document.createElement('script');
 
-      if (!res.ok) throw new Error(data.error || '서버 오류');
-      handleResult(data, text);
-    } catch(e) {
-      showAlert(e.message || '오류가 발생했습니다.');
+    const timer = setTimeout(() => {
+      cleanup();
+      showAlert('요청 시간이 초과됐습니다. 잠시 후 다시 시도해주세요.');
       setOutput('교정 결과가 여기에 표시됩니다.', true);
+      resetBtn();
+    }, 12000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
     }
 
-    resetBtn();
+    window[cbName] = function(data) {
+      cleanup();
+      try {
+        handleResult(data.message.result, text);
+      } catch(e) {
+        showAlert('결과를 처리하는 중 오류가 발생했습니다.');
+        setOutput('교정 결과가 여기에 표시됩니다.', true);
+      }
+      resetBtn();
+    };
+
+    script.onerror = function() {
+      cleanup();
+      showAlert('맞춤법 검사 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      setOutput('교정 결과가 여기에 표시됩니다.', true);
+      resetBtn();
+    };
+
+    script.src = 'https://m.search.naver.com/p/csearch/ocontent/spellchecker.nhn' +
+      '?_callback=' + cbName + '&q=' + encodeURIComponent(text);
+
+    document.head.appendChild(script);
   }
 
-  function handleResult(data, original) {
-    const errCount = data.errorCount || 0;
+  function handleResult(result, original) {
+    const errCount = Number(result.errataCount) || 0;
 
     if (errCount === 0) {
       setOutput(
@@ -327,19 +353,7 @@
       );
       errorBadge.innerHTML = '<span class="badge badge-ok">오류 없음</span>';
     } else {
-      let html = '<p style="margin-bottom:16px;line-height:1.9;">' + buildHighlighted(original, data.errors) + '</p>';
-      html += '<div style="border-top:1px solid #e8eaf0;padding-top:14px;">';
-      html += '<p style="font-size:0.78rem;color:#aaa;margin-bottom:10px;">교정 목록</p>';
-      for (const err of data.errors) {
-        html += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;font-size:0.875rem;">
-          <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">${escHtml(err.token)}</span>
-          <span style="color:#ccc;">→</span>
-          <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:4px;">${escHtml(err.suggestion)}</span>
-          <span style="color:#999;font-size:0.78rem;">${escHtml(err.type)} · ${escHtml(err.help)}</span>
-        </div>`;
-      }
-      html += '</div>';
-      setOutput(html, false);
+      setOutput(result.html || escHtml(result.errata || ''), false);
       errorBadge.innerHTML = `<span class="badge badge-warn">오류 ${errCount}개</span>`;
     }
 
@@ -349,18 +363,6 @@
       (errCount > 0
         ? `<span class="badge badge-warn">오류: ${errCount}개</span>`
         : `<span class="badge badge-ok">오류 없음</span>`);
-  }
-
-  function buildHighlighted(text, errors) {
-    const sorted = [...errors].sort((a, b) => a.start - b.start);
-    let html = '', pos = 0;
-    for (const err of sorted) {
-      html += escHtml(text.slice(pos, err.start));
-      html += `<em title="${escHtml(err.help)}">${escHtml(err.token)}</em>`;
-      pos = err.end;
-    }
-    html += escHtml(text.slice(pos));
-    return html;
   }
 
   function escHtml(str) {
