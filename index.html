@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한글 맞춤법 교정기</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f4f6fb;
+      min-height: 100vh;
+      color: #1a1a2e;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      padding: 28px 24px;
+      text-align: center;
+      color: #fff;
+    }
+    header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p  { margin-top: 6px; font-size: 0.9rem; opacity: 0.8; }
+
+    main {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 680px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-head {
+      padding: 13px 18px;
+      background: #f8f9fc;
+      border-bottom: 1px solid #e8eaf0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #555;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .char-count { font-weight: 400; color: #aaa; }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 280px;
+      border: none;
+      resize: none;
+      padding: 18px;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea::placeholder { color: #c0c4d0; }
+
+    .output-body {
+      flex: 1;
+      min-height: 280px;
+      padding: 18px;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #1a1a2e;
+      overflow-y: auto;
+    }
+    .output-body.empty { color: #c0c4d0; }
+
+    /* 네이버 교정 HTML 스타일 */
+    .output-body em {
+      font-style: normal;
+      background: #fff3cd;
+      color: #7a5700;
+      border-bottom: 2px solid #f0c040;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+    .output-body .green_word {
+      background: #d1fae5;
+      color: #065f46;
+      border-bottom: 2px solid #34d399;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      padding: 13px 36px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(37,99,235,0.45); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-ghost {
+      background: transparent;
+      color: #888;
+      border: 1px solid #dde1ed;
+      padding: 11px 22px;
+      border-radius: 50px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+    .btn-ghost:hover { background: #f0f2f8; color: #444; }
+
+    .hint {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #bbb;
+      margin-top: -6px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .badge {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .badge-warn  { background: #fef3c7; color: #92400e; }
+    .badge-ok    { background: #d1fae5; color: #065f46; }
+    .badge-info  { background: #e0e7ff; color: #3730a3; }
+
+    .alert {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #991b1b;
+      font-size: 0.875rem;
+    }
+
+    .spinner-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #999;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      padding: 28px;
+      font-size: 0.78rem;
+      color: #c0c4d0;
+    }
+
+    .ok-text { color: #059669; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>한글 맞춤법 교정기</h1>
+  <p>네이버 맞춤법 검사기 기반 · 최대 500자 · server.py로 실행하세요</p>
+</header>
+
+<main>
+  <div class="panels">
+    <!-- 입력 패널 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>입력 텍스트</span>
+        <span class="char-count" id="charCount">0 / 500자</span>
+      </div>
+      <textarea
+        id="inputText"
+        placeholder="교정할 텍스트를 입력하세요.&#10;&#10;예) 저는 오늘 친구랑 밥을 먹었어요. 너무 맛있어서 한그릇 더 먹었어요."
+        maxlength="500"
+      ></textarea>
+    </div>
+
+    <!-- 결과 패널 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>교정 결과</span>
+        <span id="errorBadge"></span>
+      </div>
+      <div class="output-body empty" id="outputContent">
+        교정 결과가 여기에 표시됩니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 버튼 -->
+  <div class="action-row">
+    <button class="btn-primary" id="checkBtn" onclick="checkSpelling()">맞춤법 검사</button>
+    <button class="btn-ghost" onclick="clearAll()">초기화</button>
+  </div>
+  <p class="hint">Ctrl + Enter 로도 검사할 수 있습니다.</p>
+
+  <!-- 통계 -->
+  <div class="stats" id="statsRow" style="display:none;"></div>
+
+  <!-- 오류 메시지 -->
+  <div id="alertBox"></div>
+</main>
+
+<footer>
+  네이버 맞춤법 검사기를 활용합니다 · 본 서비스는 비공식 API를 사용합니다
+</footer>
+
+<script>
+  const inputEl   = document.getElementById('inputText');
+  const outputEl  = document.getElementById('outputContent');
+  const checkBtn  = document.getElementById('checkBtn');
+  const statsRow  = document.getElementById('statsRow');
+  const errorBadge = document.getElementById('errorBadge');
+  const alertBox  = document.getElementById('alertBox');
+
+  inputEl.addEventListener('input', () => {
+    document.getElementById('charCount').textContent = `${inputEl.value.length} / 500자`;
+  });
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') checkSpelling();
+  });
+
+  function clearAll() {
+    inputEl.value = '';
+    document.getElementById('charCount').textContent = '0 / 500자';
+    setOutput('교정 결과가 여기에 표시됩니다.', true);
+    statsRow.style.display = 'none';
+    errorBadge.innerHTML = '';
+    alertBox.innerHTML = '';
+  }
+
+  function setOutput(html, isEmpty) {
+    outputEl.innerHTML = html;
+    outputEl.className = 'output-body' + (isEmpty ? ' empty' : '');
+  }
+
+  function showAlert(msg) {
+    alertBox.innerHTML = `<div class="alert">&#9888;&#65039; ${msg}</div>`;
+  }
+
+  function resetBtn() {
+    checkBtn.disabled = false;
+    checkBtn.textContent = '맞춤법 검사';
+  }
+
+  async function checkSpelling() {
+    const text = inputEl.value.trim();
+    if (!text) { showAlert('텍스트를 입력해주세요.'); return; }
+
+    checkBtn.disabled = true;
+    checkBtn.textContent = '검사 중...';
+    alertBox.innerHTML = '';
+    errorBadge.innerHTML = '';
+    statsRow.style.display = 'none';
+    setOutput('<div class="spinner-wrap"><div class="spinner"></div><span>맞춤법 검사 중...</span></div>', false);
+
+    try {
+      const res = await fetch('/api/check?q=' + encodeURIComponent(text));
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || '서버 오류');
+      handleResult(data.message.result, text);
+    } catch(e) {
+      showAlert(e.message || '오류가 발생했습니다.');
+      setOutput('교정 결과가 여기에 표시됩니다.', true);
+    }
+
+    resetBtn();
+  }
+
+  function handleResult(result, original) {
+    const errCount = Number(result.errataCount) || 0;
+
+    if (errCount === 0) {
+      setOutput(
+        '<p class="ok-text" style="margin-bottom:10px;">맞춤법 오류가 없습니다.</p>' +
+        '<p>' + escHtml(original) + '</p>',
+        false
+      );
+      errorBadge.innerHTML = '<span class="badge badge-ok">오류 없음</span>';
+    } else {
+      // 네이버가 반환하는 HTML에는 교정 표시가 포함돼 있음
+      const safeHtml = result.html || escHtml(result.errata || '');
+      setOutput(safeHtml, false);
+      errorBadge.innerHTML = `<span class="badge badge-warn">오류 ${errCount}개</span>`;
+    }
+
+    statsRow.style.display = 'flex';
+    statsRow.innerHTML =
+      `<span class="badge badge-info">입력: ${original.length}자</span>` +
+      (errCount > 0
+        ? `<span class="badge badge-warn">오류: ${errCount}개</span>`
+        : `<span class="badge badge-ok">오류 없음</span>`);
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+
+</body>
+</html>
